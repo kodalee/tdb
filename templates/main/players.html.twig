@@ -1,0 +1,82 @@
+{% extends "base.html.twig" %}
+{% import "macros/_roles.html.twig" as roleMacros %}
+
+{% block title %}
+	{{ parent() }}
+	- Players
+{% endblock %}
+
+{% block body %}
+	<div class="container mx-auto bg-base-100 border border-slate-700 rounded-lg shadow-lg">
+		<div class="card bg-base-200 mx-auto overflow-hidden">
+			<div class="text-2xl font-bold p-5 bg-base-100 border-b border-slate-700 gap-1 card-header flex justify-between items-center">
+				<div>
+					<i class="fas fa-users"></i>
+					Players
+				</div>
+				<!-- bookmark -->
+				<a href="" class="btn btn-xs btn-base-100 border border-slate-700 disabled" title="API Documentation" disabled>
+					<i class="fas fa-folder-open"></i>
+					API Documentation (coming soon)
+				</a>
+			</div>
+			<div class="card-body">
+				<form method="post" class="flex gap-2 mb-0">
+					<label class="input input-bordered input-xs flex items-center gap-2 w-full">
+						<input type="text" class="grow" placeholder="Search for players..." name="search" value="{{ search ?? '' }}">
+						<kbd class="kbd kbd-xs gap-1">enter <i class="fal fa-arrow-turn-down-left"></i></kbd>
+					</label>
+					<button type="submit" class="btn btn-xs btn-primary">
+						<i class="fas fa-search"></i>
+						Search
+					</button>
+				</form>
+				<div class="text-sm text-slate-500">
+					Search by their RP name, Steam name, or Steam ID
+				</div>
+
+				<div class="divider"></div>
+
+				{% if search is defined %}
+					{% if players is empty %}
+						<div class="text-error" role="alert">
+							No results found for "{{ search }}"
+						</div>
+					{% else %}
+						<div class="text-info" role="alert">
+							Showing {{ players|length }} results for "{{ search }}"
+						</div>
+
+						<ul class="divide-y divide-slate-700 rounded-lg border border-slate-700 overflow-hidden">
+							{% for player in players %}
+								<li class="flex items-center justify-between bg-base-200 hover:bg-base-100 active:bg-base-300">
+									<a href="{{ path('app_player', { 'steamid': player.steamid64 }) }}" class="flex items-center gap-2 w-full justify-between py-3 px-4">
+										<div class="flex items-center gap-2">
+											<img src="{{ player.avatar }}" alt="{{ player.rpname }}" class="rounded-lg border border-slate-700" style="width: 50px; height: 50px;">
+											<div class="flex flex-col">
+												<div class="text-lg font-bold">
+													{{ player.rpname }}
+													{{ roleMacros.badge(player.rank ?? "user", "span") }}
+												</div>
+												<div class="text-sm text-slate-500">
+													{{ player.steamName }}
+												</div>
+											</div>
+										</div>
+										<div class="flex items-center gap-2">
+											<div class="gap-1 badge badge-sm badge-secondary">
+												<i class="fab fa-steam"></i>
+												{{ player.steamid64 }}
+											</div>
+										</div>
+									</a>
+							{% endfor %}
+						</ul>
+					{% endif %}
+				{% else %}
+					Please enter a search term
+				{% endif %}
+			</div>
+		</div>
+	</div>
+{% endblock %}

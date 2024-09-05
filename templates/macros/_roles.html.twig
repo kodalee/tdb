@@ -1,0 +1,46 @@
+{% macro badge(id, tagName = "span", additionalClasses = []) %}
+	{% set roles = {
+        "user": {
+            "display": "User",
+            "badge": "secondary"
+        },
+        "vip": {
+            "display": "VIP",
+            "badge": "warning"
+        },
+        "respected": {
+            "display": "Respected",
+            "badge": "info"
+        },
+        "developer": {
+            "display": "Developer",
+            "badge": "warning"
+        },
+        "moderator": {
+            "display": "Moderator",
+            "color": "purple"
+        },
+        "trialmoderator": {
+            "display": "Trial Mod",
+            "color": "green"
+        },
+        "admin": {
+            "display": "Admin",
+            "badge": "primary"
+        },
+        "headadmin": {
+            "display": "Head Admin",
+            "badge": "info"
+        },
+        "superadmin": {
+            "display": "Superadmin",
+            "badge": "error"
+        }
+    } %}
+	{% set role = roles[id] %}
+	{% if role is defined %}
+		<{{tagName}} class="badge badge-xs {% if role.badge is defined %}badge-{{ role.badge }}{% endif %} {% if role.bg is defined %}bg-{{ role.bg }}{% endif %} {% for class in additionalClasses %}{{class}}{% endfor %}" {% if role.color is defined %} style="background-color: {{ role.color }};" {% endif %}>{{ role.display }}</{{tagName}}>
+	{% else %}
+		<{{tagName}} class="badge badge-xs bg-secondary">Unknown</{{tagName}}>
+	{% endif %}
+{% endmacro %}

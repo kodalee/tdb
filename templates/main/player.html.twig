@@ -1,0 +1,393 @@
+{% extends "base.html.twig" %}
+{% import "macros/_roles.html.twig" as roleMacros %}
+
+{% block title %}
+	{{ parent() }}
+	- Player
+{% endblock %}
+
+{% set totalMinsPlayed = player.weekactivity.current | map(a => a.time_played) | reduce((carry, item) => carry + item) %}
+{% set totalSitsTaken = player.weekactivity.current | map(a => a.sits) | reduce((carry, item) => carry + item) %}
+
+{% block body %}
+	<div class="container mx-auto">
+		<div class="flex justify-between">
+			<div class="bg-base-100 mr-2">
+				<div class="border border-slate-700 rounded-lg shadow-lg card bg-base-200 mx-auto overflow-hidden w-96">
+					<div class="text-xl font-bold py-3 px-5 bg-base-100 border-b border-slate-700 gap-1 card-header flex justify-between items-center">
+						Player
+					</div>
+					<div class="card-body">
+						<div class="flex justify-center mb-3">
+							<img src="{{ player.steam.avatar }}" alt="{{ player.server.rpname }}" class="rounded-lg border border-slate-700" style="width: 100px; height: 100px;">
+						</div>
+						<div class="flex flex-col items-center justify-center me-auto w-full">
+							<div class="mb-0 d-flex gap-2 align-items-center text-lg">
+								{{ player.server.rpname }}
+							</div>
+							{% if (player.steam.name ?? "null") != player.server.rpname %}
+								<small class="text-secondary">
+									{{ player.steam.name }}
+								</small>
+							{% endif %}
+							{{ roleMacros.badge(player.server.rank ?? "user", "div", ["mt-2"]) }}
+							<a class="badge badge-sm badge-secondary gap-1 mt-1" href="https://steamcommunity.com/profiles/{{ player.steam.steamid64 }}" target="_blank">
+								<i class="fab fa-steam"></i>
+								{{ player.steam.steamid64 }}
+							</a>
+						</div>
+						<div class="divider"></div>
+						{# max level is 50 #}
+						{# progress bar should show "*/50 (*%)" #}
+						{% set leveling = player.server.leveling ?? null %}
+						{% if leveling is not null %}
+							{% set progress = (leveling.level / 50) * 100 %}
+							{% if leveling.prestige_total > 0 %}
+								<div>
+									Prestige:
+									<span class="text-warning">
+										{{ leveling.prestige_total }}</span>
+								</div>
+							{% endif %}
+							<div>Level:
+								<span class="text-primary">{{ leveling.level }}</span>/50</div>
+							<progress class="progress progress-primary" value="{{ leveling.level }}" max="50"></progress>
+						<div class="divider"></div>
+					{% endif %}
+					{% if player.reputation.total > 0 %}
+						<div>Reputation:
+							<span class="text-success">{{ player.reputation.total }}
+								(+)</span>
+						</div>
+					{% else %}
+						<div>Reputation:
+							<span class="text-danger">{{ player.reputation.total }}
+								(-)</span>
+						</div>
+					{% endif %}
+					<div>Wallet: ${{ player.server.money|number_format(2) }}</div>
+					<div>Week Activity:
+						{{ (totalMinsPlayed / 60)|round(2) }}
+						hour(s)</div>
+				</div>
+			</div>
+		</div>
+		<div
+			class="w-full">
+			{# accordion #}
+			<div class="accordion" id="playerAccordion">
+				<div class="collapse collapse-plus bg-base-100 border border-slate-700 rounded-lg mb-2">
+					<input type="radio" name="player-details">
+					<h2 class="collapse-title text-xl font-medium" id="headingZero">
+						Admin Sit Performance
+					</h2>
+					{% if totalMinsPlayed > 0 and totalSitsTaken > 0 %}
+						{% set perfPerc = ((totalSitsTaken / totalMinsPlayed) * 12) * 100 %}
+						<div class="collapse-content border-t border-slate-700 bg-base-200">
+							<div class="mt-4">
+								<div>Performance Rating:
+									<span class="text-primary">{{ perfPerc|round(2) }}%</span>
+								</div>
+								<div>Sits Per Hour:
+									{{ ((totalSitsTaken / totalMinsPlayed) * 60)|round(2) }}</div>
+								<br>
+								<div>Total Weekly Sits:
+									{{ totalSitsTaken }}</div>
+								<div>Weekly Hours Played:
+									{{ (totalMinsPlayed / 60)|round(2) }}</div>
+							</div>
+							<progress class="progress progress-primary my-2" value="{{ perfPerc }}" max="100"></progress>
+						<div class="text-secondary" style="font-size: 9px;">DISCLAIMER: This performance grade is only based on hours online and sits taken during those sessions within the past week. Do not solely rely on this data to provide indisputably accurate information. 100% is at least 5 sits per hour to take downtime into consideration. This is 100% obtainable.</div>
+					</div>
+				{% else %}
+					<div class="collapse-content border-t border-slate-700 bg-base-200">
+						<div class="mt-4">Data is insufficient to calculate performance. This is likely due to the player not taking sits, or playing on the server within the week. If the player is not a staff member, they won't have data here.</div>
+					</div>
+				{% endif %}
+			</div>
+
+			<div class="collapse collapse-plus bg-base-100 border border-slate-700 rounded-lg mb-2">
+				<input type="radio" name="player-details">
+				<h2 class="collapse-title text-xl font-medium" id="headingOne">
+					Coinflip Statistics
+				</h2>
+				<div class="collapse-content border-t border-slate-700 bg-base-200">
+					<div class="flex justify-between mt-4">
+						<div>
+							<div>Win/Loss Ratio:
+								<span class="text-success">{{ player.gamble.coinflip.games_won ?? 0 }}</span>
+								/
+								<span class="text-error">{{ player.gamble.coinflip.games_lost ?? 0 }}</span>
+								(
+								{% if player.gamble.coinflip.games_lost > 0 %}
+									{{ player.gamble.coinflip.games_won / player.gamble.coinflip.games_lost | round(2) }}{% else %}0
+								{% endif %})
+							</div>
+							<div>Wins:
+								{{ player.gamble.coinflip.games_won }}</div>
+							<div>Losses:
+								{{ player.gamble.coinflip.games_lost }}</div>
+						</div>
+						<div class="text-end">
+							<div>$ Spent: ${{ player.gamble.coinflip.money_spent|number_format(2) }}</div>
+							<div>$ Won: ${{ player.gamble.coinflip.money_won|number_format(2) }}</div>
+							{% set netYield = player.gamble.coinflip.money_won - player.gamble.coinflip.money_spent %}
+							{% if netYield > 0 %}
+								<div class="text-success">Net Yield: ${{ netYield|number_format(2) }}</div>
+							{% else %}
+								<div class="text-danger">Net Yield: ${{ netYield|number_format(2) }}</div>
+							{% endif %}
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="collapse collapse-plus bg-base-100 border border-slate-700 rounded-lg mb-2">
+				<input type="radio" name="player-details">
+				<h2 class="collapse-title text-xl font-medium" id="headingTwo">
+					Jackpot Statistics
+				</h2>
+				<div class="collapse-content border-t border-slate-700 bg-base-200">
+					<div class="flex justify-between mt-4">
+						<div>
+							<div>Win/Loss Ratio:
+								<span class="text-success">{{ player.gamble.jackpot.games_won ?? 0 }}</span>
+								/
+								<span class="text-error">{{ player.gamble.jackpot.games_lost ?? 0 }}</span>
+								(
+								{% if player.gamble.jackpot.games_lost > 0 %}
+									{{ player.gamble.jackpot.games_won / player.gamble.jackpot.games_lost | round(2) }}{% else %}0
+								{% endif %})
+							</div>
+							<div>Wins:
+								{{ player.gamble.jackpot.games_won }}</div>
+							<div>Losses:
+								{{ player.gamble.jackpot.games_lost }}</div>
+						</div>
+						<div class="text-end">
+							<div>$ Spent: ${{ player.gamble.jackpot.money_spent|number_format(2) }}</div>
+							<div>$ Won: ${{ player.gamble.jackpot.money_won|number_format(2) }}</div>
+							{% set netYield = player.gamble.jackpot.money_won - player.gamble.jackpot.money_spent %}
+							{% if netYield > 0 %}
+								<div class="text-success">Net Yield: ${{ netYield|number_format(2) }}</div>
+							{% else %}
+								<div class="text-danger">Net Yield: ${{ netYield|number_format(2) }}</div>
+							{% endif %}
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="collapse collapse-plus bg-base-100 border border-slate-700 rounded-lg mb-2">
+				<input type="radio" name="player-details">
+				<h2 class="collapse-title text-xl font-medium" id="headingThree">
+					Gang Details
+				</h2>
+				{% set gang = player.server.gang ?? null %}
+				{% if gang is null %}
+					<div class="collapse-content border-t border-slate-700 bg-base-200">
+						<div class="mt-4">No gang found</div>
+					</div>
+				{% else %}
+					<div class="collapse-content border-t border-slate-700 bg-base-200">
+						<div class="mt-4">Gang:
+							{% if gang is not null %}
+								{{ gang.gang_name }}
+							{% else %}
+								<span class="text-error">None</span>
+							{% endif %}
+						</div>
+						<div>Rank:
+							{% if gang.rank == 0 %}
+								Member
+							{% elseif gang.rank == 1 %}
+								Officer
+							{% elseif gang.rank == 2 %}
+								Owner
+							{% else %}
+								<span class="text-error">None</span>
+							{% endif %}
+						</div>
+						<div>Level:
+							{{ gang.level }}
+						</div>
+						<progress class="progress progress-primary" value="{{ gang.level }}" max="70"></progress>
+					</div>
+				{% endif %}
+			</div>
+		</div>
+
+		<div class="collapse collapse-plus bg-base-100 border border-slate-700 rounded-lg mb-2">
+			<input type="radio" name="player-details">
+			<h2 class="collapse-title text-xl font-medium" id="headingFour">
+				Custom Classes
+			</h2>
+			{% set ccs = player.ccs ?? null %}
+			<div class="collapse-content border-t border-slate-700 bg-base-200">
+				{% if ccs is not null %}
+					{# pagination needed #}
+					{% for cc in ccs %}
+						<ul class="mt-4 divide-y divide-slate-700 rounded-lg border border-slate-700 overflow-hidden mb-2">
+							<li class="flex items-center justify-between bg-base-200 hover:bg-base-100">
+								<div class="flex items-center gap-2 w-full justify-between py-3 px-4">
+									<div class="flex items-center gap-2">
+										<div class="flex flex-col">
+											<div class="text-lg font-bold" style="color: rgb({{ cc.clr }})">
+												{{ cc.nm }}
+											</div>
+											<div class="text-sm text-slate-500">
+												<a href="https://steamcommunity.com/profiles/{{ cc.ownr }}" target="_blank">
+													Owner:
+													{{ cc.ownr }}
+													|
+													{{ cc.cmd}}
+												</a>
+											</div>
+										</div>
+									</div>
+									<div class="flex items-center gap-2">
+										{% if cc.ownr == player.steam.steamid64 %}
+											<div class="mx-1">
+												<div class="tooltip tooltip-left" data-tip="Class is owned by this player">
+													<i class="fas fa-crown"></i>
+												</div>
+											</div>
+										{% endif %}
+										{% if cc.cop == 1 %}
+											<div class="mx-1">
+												<div class="tooltip tooltip-left" data-tip="This is a police class">
+													<i class="fas fa-shield-alt"></i>
+												</div>
+											</div>
+										{% endif %}
+										{% if cc.htman == 1 %}
+											<div class="mx-1">
+												<div class="tooltip tooltip-left" data-tip="This is a hitman class">
+													<i class="fas fa-gun"></i>
+												</span>
+											</div>
+										{% endif %}
+									</div>
+								</li>
+							</li>
+						</ul>
+					{% endfor %}
+				{% else %}
+					<div class="text-error mt-4">No custom classes found</div>
+				{% endif %}
+			</div>
+		</div>
+
+		<div class="collapse collapse-plus bg-base-100 border border-slate-700 rounded-lg mb-2">
+			<input type="radio" name="player-details">
+			<h2 class="collapse-title text-xl font-medium" id="headingFive">
+				Reputation
+			</h2>
+			<div class="collapse-content border-t border-slate-700 bg-base-200">
+				<div class="mt-4">Total Reputation:
+					{% if player.reputation.total > 0 %}
+						<span class="text-success">{{ player.reputation.total }}
+							(+)</span>
+					{% else %}
+						<span class="text-danger">{{ player.reputation.total }}
+							(-)</span>
+					{% endif %}
+				</div>
+				{#
+								{
+				  "reputation": {
+				    "total": 128,
+				    "count": 256,
+				    "list": [
+				      {
+				        "sender": "STEAM_0:0:102043657",
+				        "message": "You as well my man",
+				        "rating": 1
+				      }, 
+								 #}
+				{% set repList = player.reputation.list ?? null %}
+				{% if repList is not null %}
+					{% set pages = repList|length / 20 %}
+					<div class="join">
+						{% for page in range(0, pages) %}
+							<button class="join-item btn
+															{% if page == 0 %}
+																btn-primary
+															{% else %}
+																btn-base-100
+															{% endif %}
+															btn-xs" data-reppage-target="{{ page }}">{{ page + 1 }}</button>
+						{% endfor %}
+					</div>
+					{% for page in range(0, pages) %}
+						<ul class="mt-4 divide-y divide-slate-700 rounded-lg border border-slate-700 overflow-hidden mb-2 {% if page != 0 %}hidden{% endif %}" data-reppage="{{ page }}">
+							{% for rep in repList|slice(page * 20, 20) %}
+								<li class="flex items-center justify-between bg-base-200 hover:bg-base-100">
+									<div class="flex items-center gap-2 w-full justify-between py-3 px-4">
+										<div class="flex items-center gap-2">
+											<div class="flex flex-col">
+												<div class="text-lg font-bold">
+													{{ rep.message }}
+												</div>
+												<div class="text-sm text-slate-500">
+													<a href="{{ path('app_player', { 'steamid': rep.sender }) }}">
+														{{ rep.sender }}
+													</a>
+												</div>
+											</div>
+										</div>
+										<div class="flex items-center gap-2">
+											{% if rep.rating > 0 %}
+												<div class="badge badge-sm badge-success">
+													+{{ rep.rating }}
+												</div>
+											{% elseif rep.rating < 0 %}
+												<div class="badge badge-sm badge-error">
+													{{ rep.rating }}
+												</div>
+											{% else %}
+												<div class="badge badge-sm badge-secondary">
+													{{ rep.rating }}
+												</div>
+											{% endif %}
+
+										</div>
+									</div>
+								</li>
+							{% endfor %}
+						</ul>
+					{% endfor %}
+				{% else %}
+					<div class="text-error mt-4">No reputation found</div>
+				{% endif %}
+			</div>
+		</div>
+	</div>
+</div>{% endblock %}{% block javascripts %}
+{{ parent() }}
+<script>
+	// reputation pagination
+const repPages = document.querySelectorAll('[data-reppage]');
+const repPageBtns = document.querySelectorAll('[data-reppage-target]');
+repPageBtns.forEach(btn => {
+btn.addEventListener('click', () => {
+const target = btn.getAttribute('data-reppage-target');
+repPages.forEach(page => {
+if (page.getAttribute('data-reppage') == target) {
+page.classList.remove('hidden');
+} else {
+page.classList.add('hidden');
+}
+});
+repPageBtns.forEach(b => {
+if (b.getAttribute('data-reppage-target') == target) {
+b.classList.remove('btn-base-100');
+b.classList.add('btn-primary');
+} else {
+b.classList.remove('btn-primary');
+b.classList.add('btn-base-100');
+}
+});
+});
+});
+</script>{% endblock %}
